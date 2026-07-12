@@ -3,7 +3,10 @@
 GET /api/v1/asset/{cad_number} — карточка объекта (Digital Twin).
 """
 
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, Path, status
+from geoalchemy2.shape import to_shape
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
@@ -13,27 +16,17 @@ from app.modules.asset.schemas import CAD_NUMBER_PATTERN, AssetRead
 
 router = APIRouter(prefix="/asset", tags=["asset"])
 
-# PostGIS отдаёт геометрию в бинарном WKB. На API нужен GeoJSON.
-# ST_AsGeoJSON возвращает JSON-строку; парсим её в dict для Pydantic.
-_ST_AS_GEOJSON = "ST_AsGeoJSON(:geom_col)"
 
+def _asset_to_read(asset: Asset) -> AssetRead:
+    """Конвертирует ORM-модель в схему ответа, превращая geometry в GeoJSON.
 
-def _asset_to_read(asset: Asset, db: Session) -> AssetRead:
-    """Конвертирует ORM-модель в схему ответа, превращая geometry в GeoJSON."""
-    geojson = None
-    if asset.geometry is not None:
-        from sqlalchemy import text
-
-        row = db.execute(
-            text("SELECT ST_AsGeoJSON(:g) AS geojson"),
-            {"g": asset.geometry},
-        ).one_or_none()
-        if row and row.geojson:
-            import json
-
-            geojson = json.loads(row.geojson)
+    GeoAlchemy2 хранит геометрию как WKB-бинарник. `to_shape` превращает его
+    в shapely-объект, `__geo_interface__` — в GeoJSON-совместимый dict.
+    Без обращения к БД — всё в памяти.
+    """
     data = {c.name: getattr(asset, c.name) for c in asset.__table__.columns}
-    data["geometry"] = geojson
+    if asset.geometry is not None:
+        data["geometry"] = to_shape(asset.geometry).__geo_interface__
     return AssetRead.model_validate(data)
 
 
@@ -60,4 +53,4 @@ def get_asset(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Asset not found",
         )
-    return _asset_to_read(asset, db)
+    return _asset_to_read(asset)

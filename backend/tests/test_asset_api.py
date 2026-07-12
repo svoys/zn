@@ -7,6 +7,8 @@
     Если БД недоступна — тесты падают с ошибкой подключения.
 """
 
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
@@ -78,6 +80,51 @@ class TestAssetEndpoint:
         response = client.get("/api/v1/asset/99:99:999999:999")
         assert response.status_code == 404
         assert response.json()["detail"] == "Asset not found"
+
+
+class TestAssetGeometry:
+    """Проверка, что geometry отдаётся как GeoJSON Polygon.
+
+    Вставляем актив с полигоном через ST_GeomFromGeoJSON и проверяем,
+    что в ответе API геометрия представлена как GeoJSON-совместимый dict.
+    """
+
+    POLYGON_GEOJSON = {
+        "type": "Polygon",
+        "coordinates": [
+            [[37.0, 55.0], [37.1, 55.0], [37.1, 55.1], [37.0, 55.1], [37.0, 55.0]]
+        ],
+    }
+
+    def test_geometry_returned_as_geojson(self, db_ready):
+        # Вставляем актив с полигоном через SQL (ST_GeomFromGeoJSON).
+        with SessionLocal() as db:
+            db.execute(
+                text("DELETE FROM zn.asset WHERE cad_number = :cn"),
+                {"cn": "77:77:777777:777"},
+            )
+            db.execute(
+                text(
+                    "INSERT INTO zn.asset (cad_number, address, area, status, geometry) "
+                    "VALUES (:cn, :addr, :area, 'active', ST_GeomFromGeoJSON(:geo))"
+                ),
+                {
+                    "cn": "77:77:777777:777",
+                    "addr": "Тестовый полигон",
+                    "area": 100.0,
+                    "geo": json.dumps(self.POLYGON_GEOJSON),
+                },
+            )
+            db.commit()
+
+        response = client.get("/api/v1/asset/77:77:777777:777")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["geometry"] is not None
+        assert body["geometry"]["type"] == "Polygon"
+        # Polygon coordinates — массив колец; первое кольцо содержит 5 точек
+        # (замкнутый полигон: первая == последняя).
+        assert len(body["geometry"]["coordinates"][0]) == 5
 
 
 class TestCadNumberValidation:
