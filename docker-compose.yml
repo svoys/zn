@@ -1,0 +1,46 @@
+# ZN — локальная инфраструктура для разработки
+# Запуск: docker compose up -d
+# Остановка: docker compose down
+# Снести с данными: docker compose down -v
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: zn-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zn
+      POSTGRES_PASSWORD: zn
+      POSTGRES_DB: zn
+    ports:
+      - "5432:5432"
+    volumes:
+      - zn-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zn -d zn"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Отдельная БД для тестов — поднимается вместе с основной
+  db-test:
+    image: postgis/postgis:16-3.4
+    container_name: zn-db-test
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zn
+      POSTGRES_PASSWORD: zn
+      POSTGRES_DB: zn_test
+    ports:
+      - "5433:5432"
+    volumes:
+      - zn-db-test-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zn -d zn_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  zn-db-data:
+  zn-db-test-data:

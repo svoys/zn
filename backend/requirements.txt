@@ -2,9 +2,16 @@ fastapi
 uvicorn[standard]
 pydantic
 pydantic-settings
-sqlalchemy
+sqlalchemy>=2.0
 psycopg2-binary
+geoalchemy2
 alembic
 python-dotenv
 loguru
 httpx
+shapely
+
+# ─── Testing ────────────────────────────────────────────
+pytest
+pytest-cov
+httpx  # already above; left explicit for TestClient
