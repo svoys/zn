@@ -29,7 +29,7 @@ def upgrade() -> None:
 
     op.create_table(
         "asset",
-        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
+        sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False, primary_key=True),
         sa.Column("cad_number", sa.String(length=40), nullable=False),
         sa.Column("address", sa.Text(), nullable=True),
         sa.Column(

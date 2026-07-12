@@ -2,16 +2,18 @@
 
 Обеспечивает:
   - импортируемость `app.*` из корня backend/.
-  - переменную окружения DB_DSN для тестов (можно перезаписать).
+  - рабочий каталог = backend/, чтобы pydantic-settings нашёл .env.
 """
 
-import os
 import sys
 from pathlib import Path
 
-# backend/ — корень для абсолютных импортов `app.*`.
+# backend/ — корень для абсолютных импортов `app.*` и для .env (env_file=".env").
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_DIR))
 
-# На случай, если .env не подгрузится — дефолтная тестовая БД.
-os.environ.setdefault("DB_DSN", "postgresql+psycopg2://zn:zn@localhost:5432/zn_test")
+# Тесты запускаются из backend/, чтобы pydantic-settings подхватил backend/.env.
+import os  # noqa: E402
+
+os.chdir(BACKEND_DIR)
+
