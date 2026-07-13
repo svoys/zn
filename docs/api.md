@@ -69,9 +69,56 @@ ZN API построен на FastAPI. Базовый префикс — `/api/v1
 
 ---
 
+## `GET /api/v1/search`
+
+Умный поиск активов с фильтрами и пагинацией.
+
+**Query-параметры:**
+
+| Имя | Тип | Default | Описание |
+|---|---|---|---|
+| `q` | string | — | Текстовый поиск по адресу и cad_number (case-insensitive) |
+| `region` | string | — | Код региона (первые 2 цифры cad_number, напр. `50`) |
+| `area_min` | number | — | Минимальная площадь, кв.м |
+| `area_max` | number | — | Максимальная площадь, кв.м |
+| `category` | string | — | Точное совпадение категории (напр. `Земли населённых пунктов`) |
+| `status` | string | `active` | Статус актива: `active`/`archived`/`deleted` |
+| `limit` | int | `20` | Размер страницы (1–100) |
+| `offset` | int | `0` | Сдвиг для пагинации |
+
+Все фильтры комбинируются через AND. `q` ищет через ILIKE по `address` и `cad_number`.
+
+**Ответ 200 — Page[Asset]:**
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "cad_number": "12:34:567890:123",
+      "address": "Московская обл., Одинцовский р-н, д. Раздоры",
+      "geometry": { "type": "Polygon", "coordinates": [[[...]]] },
+      "area": 1500.00,
+      "category": "Земли населённых пунктов",
+      "owner_type": "private",
+      "status": "active",
+      "created_at": "2026-07-12T10:00:00Z",
+      "updated_at": "2026-07-12T10:00:00Z"
+    }
+  ],
+  "total": 42,
+  "limit": 20,
+  "offset": 0
+}
+```
+
+- `items` — массив объектов Asset (та же схема, что у `GET /asset/{cad_number}`)
+- `total` — общее число записей под текущие фильтры (без пагинации)
+- `limit`/`offset` — эхо параметров пагинации
+
+---
+
 ## Плановые эндпоинты (не в MVP)
 
-- `GET /api/v1/asset` — список с фильтрами (регион, площадь, ВРИ, цена)
 - `POST /api/v1/watchlist` — добавление в избранное
 - `GET /api/v1/watchlist` — список избранного
-- `GET /api/v1/search?q=...` — умный поиск
