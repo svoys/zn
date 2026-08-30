@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Literal
 
 from geoalchemy2 import Geometry
-from sqlalchemy import BigInteger, Index, Numeric, String, Text, func
+from sqlalchemy import BigInteger, CheckConstraint, Index, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
@@ -33,11 +33,31 @@ class Asset(Base):
         Index("ix_asset_geometry", "geometry", postgresql_using="gist"),
         # B-tree по статусу — частый фильтр active/archived.
         Index("ix_asset_status", "status"),
+        # Справочники owner_type/status фиксируются на уровне БД (миграция 0002),
+        # чтобы ETL не мог записать значение вне списка. Схема чтения при этом
+        # остаётся терпимой (str) — см. schemas.py.
+        CheckConstraint(
+            "owner_type IN ('state', 'municipal', 'private', 'unknown') OR owner_type IS NULL",
+            name="ck_asset_owner_type",
+        ),
+        CheckConstraint(
+            "status IN ('active', 'archived', 'deleted')",
+            name="ck_asset_status",
+        ),
+        CheckConstraint(
+            "kind IN ('parcel', 'building', 'complex', 'unknown')",
+            name="ck_asset_kind",
+        ),
         {"schema": "zn"},
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     cad_number: Mapped[str] = mapped_column(String(40), nullable=False)
+    # Тип объекта — дискриминатор. MVP: только parcel. Правовой слой участка
+    # живёт в 1:1-таблице zn.parcel (asset_id = shared PK).
+    kind: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="parcel", server_default="parcel"
+    )
     address: Mapped[str | None] = mapped_column(Text)
     geometry: Mapped[object | None] = mapped_column(
         Geometry(geometry_type="POLYGON", srid=4326)

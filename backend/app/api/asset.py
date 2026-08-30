@@ -3,7 +3,6 @@
 GET /api/v1/asset/{cad_number} — карточка объекта (Digital Twin).
 """
 
-import json
 
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 from geoalchemy2.shape import to_shape

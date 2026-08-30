@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     DB_MAX_OVERFLOW: int = 10
 
     # ─── Tests ─────────────────────────────────────────
-    TEST_DB_DSN: str = "postgresql+psycopg2://zn:zn@localhost:5432/zn_test"
+    TEST_DB_DSN: str = "postgresql+psycopg2://zn:zn@localhost:5433/zn_test"
 
 
 settings = Settings()

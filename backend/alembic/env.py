@@ -26,6 +26,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.core.config import settings  # noqa: E402
 from app.database.base import Base  # noqa: E402
 import app.modules.asset.models  # noqa: E402,F401  # регистрируем модели в метаданных
+import app.modules.parcel.models  # noqa: E402,F401
+import app.modules.restriction.models  # noqa: E402,F401
+import app.modules.opportunity.models  # noqa: E402,F401
+import app.modules.ai_insight.models  # noqa: E402,F401
+import app.modules.event.models  # noqa: E402,F401
 
 # DSN из настроек приложения, не из alembic.ini.
 config.set_main_option("sqlalchemy.url", settings.DB_DSN)

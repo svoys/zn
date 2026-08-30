@@ -17,8 +17,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
-from app.database.base import Base
-from app.database.session import SessionLocal, engine
+from tests.conftest import TestingSessionLocal as SessionLocal
 from app.main import app
 from app.modules.asset.models import Asset
 
@@ -35,14 +34,12 @@ TEST_ASSETS = [
 
 @pytest.fixture(scope="module")
 def db_ready():
-    """Создаёт таблицу asset, заполняет тестовыми данными, чистит после."""
-    with engine.connect() as conn:
-        conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
-        conn.execute(text("CREATE SCHEMA IF NOT EXISTS zn"))
-        conn.commit()
-    Base.metadata.create_all(bind=engine, tables=[Asset.__table__])
+    """Заполняет asset тестовыми данными, чистит после.
 
-    # Чистим и заполняем детерминированными данными.
+    Схема создаётся один раз на сессию в conftest.py (`_full_schema`) —
+    здесь мы только управляем СТРОКАМИ, не таблицами (см. docstring
+    `_full_schema` про порядок-зависимость при create_all/drop_all по файлам).
+    """
     with SessionLocal() as db:
         db.execute(text("DELETE FROM zn.asset"))
         db.commit()
@@ -55,7 +52,6 @@ def db_ready():
     with SessionLocal() as db:
         db.execute(text("DELETE FROM zn.asset"))
         db.commit()
-    Base.metadata.drop_all(bind=engine, tables=[Asset.__table__])
 
 
 class TestSearchNoFilters:
