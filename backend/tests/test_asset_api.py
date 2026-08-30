@@ -14,8 +14,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.database.base import Base
-from app.database.session import SessionLocal, engine
+from tests.conftest import TestingSessionLocal as SessionLocal
 from app.main import app
 from app.modules.asset.models import Asset
 from app.modules.asset.schemas import CAD_NUMBER_PATTERN
@@ -27,18 +26,16 @@ VALID_CAD_NUMBER = "12:34:567890:123"
 
 @pytest.fixture(scope="module")
 def db_ready():
-    """Создаёт схему и таблицу asset перед тестами, чистит после.
+    """Отмечает, что тесту нужна БД.
 
+    Схема (все таблицы) создаётся один раз на сессию в conftest.py
+    (`_full_schema`), поэтому здесь мы её не создаём и не удаляем —
+    иначе порядок выполнения тестовых файлов начинает влиять на
+    результат (см. docstring `_full_schema` в conftest.py).
     Применяется только к классам, которым нужна БД (TestAssetEndpoint).
     Валидационные тесты запускаются без БД.
     """
-    with engine.connect() as conn:
-        conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
-        conn.execute(text("CREATE SCHEMA IF NOT EXISTS zn"))
-        conn.commit()
-    Base.metadata.create_all(bind=engine, tables=[Asset.__table__])
     yield
-    Base.metadata.drop_all(bind=engine, tables=[Asset.__table__])
 
 
 def _insert_asset(cad_number: str, **overrides) -> None:

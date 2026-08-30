@@ -42,7 +42,11 @@ def search_assets(
     area_min: float | None = Query(default=None, ge=0, description="Мин. площадь, кв.м"),
     area_max: float | None = Query(default=None, ge=0, description="Макс. площадь, кв.м"),
     category: str | None = Query(default=None, description="Точное совпадение категории"),
-    status: str = Query(default="active", description="Статус актива"),
+    # alias="status" сохраняет внешний контракт API (?status=...), а имя
+    # параметра status_filter не затеняет импортированный fastapi.status.
+    status_filter: str = Query(
+        default="active", alias="status", description="Статус актива"
+    ),
     limit: int = Query(default=20, ge=1, le=100, description="Размер страницы"),
     offset: int = Query(default=0, ge=0, description="Сдвиг пагинации"),
     db: Session = Depends(get_db),
@@ -54,7 +58,7 @@ def search_assets(
         area_min=area_min,
         area_max=area_max,
         category=category,
-        status=status,
+        status=status_filter,
         limit=limit,
         offset=offset,
     )
